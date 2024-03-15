@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_firebase_crud_app/screens/auth/auth_screen.dart';
 import 'package:flutter_firebase_crud_app/screens/send_or_update_data_screen/send_or_update_data_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -13,12 +14,15 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => SendOrUpdateData()));
-          },
-          backgroundColor: Colors.red.shade900,
-          child: Icon(Icons.add)),
+        onPressed: () {
+          Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) => SendOrUpdateData(
+                    userData: UserData(),
+                  )));
+        },
+        backgroundColor: Colors.red.shade900,
+        child: Icon(Icons.add),
+      ),
       appBar: AppBar(
         backgroundColor: Colors.red.shade900,
         centerTitle: true,
@@ -26,15 +30,32 @@ class _HomeScreenState extends State<HomeScreen> {
           'Home',
           style: TextStyle(fontWeight: FontWeight.w300),
         ),
+        leading: Container(
+          padding: EdgeInsets.only(left: 10),
+          child:
+              Center(child: Text("${userLogin.username}\n${userLogin.role}")),
+        ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              showAlertDialog(context);
+            },
+            icon: Icon(Icons.logout),
+            padding: EdgeInsets.only(right: 10),
+          )
+        ],
       ),
       body: StreamBuilder(
-        stream: FirebaseFirestore.instance.collection('users').snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .where('createById', isEqualTo: userLogin.getRoleIdFilter())
+            .snapshots(),
         builder: (BuildContext context,
             AsyncSnapshot<QuerySnapshot> streamSnapshot) {
           return streamSnapshot.hasData
               ? ListView.builder(
                   padding: EdgeInsets.symmetric(vertical: 41),
-                  itemCount: streamSnapshot.data!.docs.length,
+                  itemCount: streamSnapshot.data?.docs.length ?? 0,
                   itemBuilder: ((context, index) {
                     return Container(
                         margin: EdgeInsets.symmetric(horizontal: 20)
@@ -64,7 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      streamSnapshot.data!.docs[index]['name'],
+                                      streamSnapshot.data?.docs[index]['name'],
                                       style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w500),
@@ -94,21 +115,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                         MaterialPageRoute(
                                             builder: (context) =>
                                                 SendOrUpdateData(
-                                                  name: streamSnapshot.data!
-                                                      .docs[index]['name'],
-                                                  age: streamSnapshot
-                                                      .data!.docs[index]['age']
-                                                      .toString(),
-                                                  email: streamSnapshot.data!
-                                                      .docs[index]['email'],
-                                                  id: streamSnapshot
-                                                      .data!.docs[index]['id'],
-                                                  lat: streamSnapshot
-                                                          .data!.docs[index]
-                                                      ['location']["lat"],
-                                                  long: streamSnapshot
-                                                          .data!.docs[index]
-                                                      ['location']["long"],
+                                                  userData:
+                                                      UserData.fromFirestore(
+                                                          streamSnapshot.data
+                                                              ?.docs[index]),
                                                 )));
                                   },
                                   child: Icon(
@@ -141,12 +151,47 @@ class _HomeScreenState extends State<HomeScreen> {
                   }))
               : Center(
                   child: SizedBox(
-                      height: 100,
-                      width: 100,
+                      height: 50,
+                      width: 50,
                       child: CircularProgressIndicator()),
                 );
         },
       ),
+    );
+  }
+
+  showAlertDialog(BuildContext context) {
+    // set up the buttons
+    Widget cancelButton = TextButton(
+      child: Text("Cancel"),
+      onPressed: () {
+        Navigator.pop(context);
+      },
+    );
+    Widget continueButton = TextButton(
+      child: Text("Continue"),
+      onPressed: () {
+        Navigator.pop(context);
+        Navigator.pop(context);
+      },
+    );
+
+    // set up the AlertDialog
+    AlertDialog alert = AlertDialog(
+      title: Text("Logout"),
+      content: Text("Would you like to continue logout app?"),
+      actions: [
+        cancelButton,
+        continueButton,
+      ],
+    );
+
+    // show the dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
     );
   }
 }
