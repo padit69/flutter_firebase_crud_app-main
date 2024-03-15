@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_firebase_crud_app/screens/auth/auth_screen.dart';
+import 'package:flutter_firebase_crud_app/screens/map_view/map_view_screen.dart';
 import 'package:flutter_firebase_crud_app/screens/send_or_update_data_screen/send_or_update_data_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -13,15 +14,31 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).push(MaterialPageRoute(
-              builder: (context) => SendOrUpdateData(
-                    userData: UserData(),
-                  )));
-        },
-        backgroundColor: Colors.red.shade900,
-        child: Icon(Icons.add),
+      floatingActionButton: Column(
+        children: [
+          Spacer(),
+          FloatingActionButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => MapViewScreen()));
+            },
+            backgroundColor: Colors.green.shade900,
+            child: Icon(Icons.map_outlined),
+          ),
+          SizedBox(
+            height: 10,
+          ),
+          FloatingActionButton(
+            onPressed: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                  builder: (context) => SendOrUpdateData(
+                        userData: UserData(),
+                      )));
+            },
+            backgroundColor: Colors.red.shade900,
+            child: Icon(Icons.add),
+          ),
+        ],
       ),
       appBar: AppBar(
         backgroundColor: Colors.red.shade900,

@@ -183,7 +183,6 @@ class _AuthScreenState extends State<AuthScreen> {
     if (querySnapshot.docs.isNotEmpty) {
       print('Get User Success');
       userLogin = AuthModel.fromFirestore(querySnapshot.docs.first);
-      showSnapBar(context, 'User login successfully.');
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => HomeScreen()),

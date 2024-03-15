@@ -95,6 +95,12 @@ class _SendOrUpdateDataState extends State<SendOrUpdateData> {
     ageController.text = widget.userData.age;
     emailController.text = widget.userData.email;
 
+    mapController.listenerMapSingleTapping.addListener(() {
+      final point = mapController.listenerMapSingleTapping.value;
+      if (point != null) {
+        _selectPoint(point);
+      }
+    });
     initMapForEdit();
     super.initState();
   }
@@ -111,6 +117,23 @@ class _SendOrUpdateDataState extends State<SendOrUpdateData> {
             .changeLocation(GeoPoint(latitude: lat, longitude: long));
       });
     }
+  }
+
+  _selectPoint(GeoPoint point) {
+    mapController
+        .removeMarker(GeoPoint(latitude: locationLat, longitude: locationLong));
+    mapController.addMarker(point,
+        markerIcon: const MarkerIcon(
+          icon: Icon(
+            Icons.location_history_rounded,
+            color: Colors.red,
+            size: 48,
+          ),
+        ));
+    locationLat = point.latitude;
+    locationLong = point.longitude;
+    locationController.text =
+        'Vĩ độ: ${point.latitude} Kinh độ:${point.longitude}';
   }
 
   @override
