@@ -6,9 +6,50 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_firebase_crud_app/screens/auth/auth_screen.dart';
 import 'package:flutter_osm_plugin/flutter_osm_plugin.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image_picker/image_picker.dart';
+
+class AddressModel {
+  String name;
+  String street;
+  String city;
+  String country;
+  String district;
+
+  AddressModel(
+      {this.name = "",
+      this.street = "",
+      this.district = "",
+      this.city = "",
+      this.country = ""});
+
+  factory AddressModel.fromLocation(Placemark data) {
+    return AddressModel(
+        name: data.name ?? "",
+        street: data.street ?? "",
+        city: data.administrativeArea ?? "",
+        district: data.subAdministrativeArea ?? "",
+        country: data.country ?? "");
+  }
+  // Initialize AddressModel from a JSON map
+  AddressModel.fromJson(Map<String, dynamic> json)
+      : name = json['name'] ?? "",
+        street = json['street'] ?? "",
+        district = json['district'] ?? "",
+        city = json['city'] ?? "",
+        country = json['country'] ?? "";
+
+  // Convert AddressModel to a JSON map
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'street': street,
+        'district': district,
+        'city': city,
+        'country': country,
+      };
+}
 
 class UserData {
   String name;
@@ -19,6 +60,7 @@ class UserData {
   String long;
   String imageURL;
   String createById;
+  AddressModel? address;
 
   UserData(
       {this.name = "",
@@ -27,6 +69,7 @@ class UserData {
       this.id = "",
       this.lat = "",
       this.long = "",
+      this.address,
       this.imageURL = "",
       this.createById = ""});
 
@@ -37,9 +80,10 @@ class UserData {
         name: data?['name'] ?? '',
         age: data?['age'] ?? '',
         email: data?['email'] ?? '',
-        id: doc.id,
+        id: doc.id ?? "",
         lat: data?['lat'] ?? '',
         long: data?['long'] ?? '',
+        address: AddressModel.fromJson(data?['address'] ?? {}),
         imageURL: data?['imageURL'] ?? '',
         createById: data?["createById"] ?? '');
   }
@@ -53,7 +97,8 @@ class UserData {
       'lat': lat,
       'long': long,
       'imageURL': imageURL,
-      'createById': createById
+      'createById': createById,
+      'address': address?.toJson()
     };
   }
 }
@@ -74,7 +119,6 @@ class _SendOrUpdateDataState extends State<SendOrUpdateData> {
   TextEditingController locationController = TextEditingController();
   File? _image;
   final ImagePicker _picker = ImagePicker();
-  bool showProgressIndicator = false;
   var isLoading = false;
 
   loading(bool value) {
@@ -396,10 +440,14 @@ class _SendOrUpdateDataState extends State<SendOrUpdateData> {
             },
             minWidth: double.infinity,
             height: 50,
-            color: Colors.red.shade400,
-            child: showProgressIndicator
-                ? CircularProgressIndicator(
-                    color: Colors.white,
+            color: const Color.fromRGBO(239, 83, 80, 1),
+            child: isLoading
+                ? Container(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                    ),
                   )
                 : const Text(
                     'Submit',
@@ -423,6 +471,7 @@ class _SendOrUpdateDataState extends State<SendOrUpdateData> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Hãy điền đầy đủ thông tin')),
       );
+      loading(false);
     } else {
       final dUser = firebase.FirebaseFirestore.instance
           .collection('users')
@@ -434,12 +483,22 @@ class _SendOrUpdateDataState extends State<SendOrUpdateData> {
         docID = dUser.id;
       }
 
+      AddressModel? andress;
+
+      List<Placemark> placemarks =
+          await placemarkFromCoordinates(locationLat, locationLong);
+
+      if (placemarks.isNotEmpty) {
+        andress = AddressModel.fromLocation(placemarks.first);
+      }
+
       final jsonData = UserData(
           createById: userLogin.id,
           name: nameController.text,
           age: ageController.text,
           email: emailController.text,
           lat: locationLat.toString(),
+          address: andress,
           long: locationLong.toString(),
           id: docID);
 
@@ -463,7 +522,6 @@ class _SendOrUpdateDataState extends State<SendOrUpdateData> {
         final imageURL = await storageRef.getDownloadURL();
         jsonData.imageURL = imageURL;
       }
-      showProgressIndicator = true;
       if (widget.userData.id.isEmpty) {
         await dUser.set(jsonData.toJson()).then((value) {
           nameController.text = '';
@@ -471,7 +529,6 @@ class _SendOrUpdateDataState extends State<SendOrUpdateData> {
           emailController.text = '';
           locationController.text = '';
           _image = null;
-          showProgressIndicator = false;
           setState(() {});
         });
       } else {
@@ -480,7 +537,6 @@ class _SendOrUpdateDataState extends State<SendOrUpdateData> {
           ageController.text = '';
           emailController.text = '';
           locationController.text = '';
-          showProgressIndicator = false;
           setState(() {});
         });
       }

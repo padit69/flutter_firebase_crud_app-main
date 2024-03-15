@@ -74,6 +74,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: EdgeInsets.symmetric(vertical: 41),
                   itemCount: streamSnapshot.data?.docs.length ?? 0,
                   itemBuilder: ((context, index) {
+                    final item = UserData.fromFirestore(
+                        streamSnapshot.data?.docs[index]);
                     return Container(
                         margin: EdgeInsets.symmetric(horizontal: 20)
                             .copyWith(bottom: 10),
@@ -102,20 +104,19 @@ class _HomeScreenState extends State<HomeScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      streamSnapshot.data?.docs[index]['name'],
+                                      item.name,
                                       style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w500),
                                     ),
                                     Text(
-                                      streamSnapshot.data!.docs[index]['age']
-                                          .toString(),
+                                      item.age,
                                       style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w300),
                                     ),
                                     Text(
-                                      streamSnapshot.data!.docs[index]['email'],
+                                      item.email,
                                       style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w400),
@@ -132,13 +133,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                         MaterialPageRoute(
                                             builder: (context) =>
                                                 SendOrUpdateData(
-                                                  userData:
-                                                      UserData.fromFirestore(
-                                                          streamSnapshot.data
-                                                              ?.docs[index]),
+                                                  userData: item,
                                                 )));
                                   },
-                                  child: Icon(
+                                  child: const Icon(
                                     Icons.edit,
                                     color: Colors.blue,
                                     size: 21,
@@ -149,11 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 GestureDetector(
                                   onTap: () async {
-                                    final docData = FirebaseFirestore.instance
-                                        .collection('users')
-                                        .doc(streamSnapshot.data!.docs[index]
-                                            ['id']);
-                                    await docData.delete();
+                                    _deleteRow(item.id);
                                   },
                                   child: Icon(
                                     Icons.delete,
@@ -210,5 +204,10 @@ class _HomeScreenState extends State<HomeScreen> {
         return alert;
       },
     );
+  }
+
+  Future<void> _deleteRow(String id) async {
+    final docData = FirebaseFirestore.instance.collection('users').doc(id);
+    await docData.delete();
   }
 }
