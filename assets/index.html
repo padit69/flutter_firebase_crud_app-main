@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenStreetMap with Leaflet</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        html,
+        body,
+        #map {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: relative;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.0/firebase-app.js';
+        import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCU-vFw3ZmE_VKgkXVtMNgJmKOpaZayszk",
+            authDomain: "flutter-firebase-crud-ap-b966e.firebaseapp.com",
+            projectId: "flutter-firebase-crud-ap-b966e",
+            storageBucket: "flutter-firebase-crud-ap-b966e.appspot.com",
+            messagingSenderId: "128587462176",
+            appId: "1:128587462176:web:eec32e56e239b766c42e45",
+            measurementId: "G-MQ87Y5GJLG"
+        };
+        const firebaseApp = initializeApp(firebaseConfig);
+        const db = getFirestore(firebaseApp);
+
+        const map = L.map('map').setView([0, 0], 2);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        const usersRef = collection(db, 'users');
+
+        getDocs(usersRef).then((querySnapshot) => {
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                const lat = parseFloat(data.lat);
+                const long = parseFloat(data.long);
+                const imageURL = data.imageURL;
+                let popupContent = '<b>User Information:</b><br>';
+                for (const key in data) {
+                    if (data.hasOwnProperty(key) && key !== 'createById' && key !== 'lat' && key !== 'long' && key !== 'imageURL' && key !== 'id') {
+                        const value = data[key];
+                        if (typeof value === 'object') {
+                            popupContent += '<b>Address:</b><br>';
+                            for (const addressKey in value) {
+                                if (value.hasOwnProperty(addressKey)) {
+                                    const addressValue = value[addressKey];
+                                    popupContent += `<b>${addressKey}:</b> ${addressValue}<br>`;
+                                }
+                            }
+                        } else {
+                            popupContent += `<b>${key}:</b> ${value}<br>`;
+                        }
+                    }
+                }
+
+                const marker = L.marker([lat, long]).addTo(map).bindPopup(popupContent);
+                if (imageURL) {
+                    const bounds = [[lat - 0.001, long - 0.001], [lat + 0.001, long + 0.001]];
+                    const imageOverlay = L.imageOverlay(imageURL, bounds).addTo(map);
+                    marker.bindPopup(popupContent + `<br><img src="${imageURL}" width="200" height="200">`);
+                }
+            });
+        }).catch((error) => {
+            console.log("Error getting documents: ", error);
+        });
+    </script>
+</body>
+
+</html>
